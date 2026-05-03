@@ -424,6 +424,11 @@
 
     <button class="btn btn-primary" style="margin-bottom:14px" onclick="recommendMeals()">✨ AI 식단 추천받기</button>
 
+    <!-- 냉장고 재료 상태 카드 -->
+    <div id="fridgeStatusCard" style="margin-bottom:14px;border-radius:14px;padding:14px;border:1.5px solid #e2e8f0;background:#fff">
+      <div id="fridgeStatusContent"></div>
+    </div>
+
     <div class="meal-card" onclick="showMealDetail('breakfast')">
       <div class="meal-header">
         <span class="meal-time">🌅 아침</span>
@@ -1266,6 +1271,36 @@ function renderMeal() {
 
   document.getElementById('dietMode').checked = state.dietMode;
   updateDietTargetDisplay();
+
+  // 냉장고 재료 상태 카드 업데이트
+  const ingList = day.ingredients || [];
+  const ingCount = ingList.length;
+  const card = document.getElementById('fridgeStatusCard');
+  const content = document.getElementById('fridgeStatusContent');
+  if (!card || !content) return;
+
+  if (ingCount > 0) {
+    const shown = ingList.slice(0, 6);
+    const extra = ingCount > 6 ? ' 외 ' + (ingCount - 6) + '개' : '';
+    const chips = shown.map(function(i) {
+      return '<span style="display:inline-block;background:#ecfdf5;color:#047857;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;margin:2px 4px 2px 0">' + i + '</span>';
+    }).join('') + (extra ? '<span style="font-size:12px;color:#64748b">' + extra + '</span>' : '');
+    card.style.borderColor = '#10b981';
+    card.style.background = '#f0fdf4';
+    content.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+        '<span style="font-size:14px;font-weight:700;color:#047857">✅ 냉장고 재료 ' + ingCount + '개 기반으로 추천</span>' +
+        '<button onclick="switchTab(\'fridge\')" style="font-size:12px;color:#10b981;background:none;border:none;font-weight:600;cursor:pointer">재료 수정 ›</button>' +
+      '</div>' +
+      '<div>' + chips + '</div>';
+  } else {
+    card.style.borderColor = '#e2e8f0';
+    card.style.background = '#fff';
+    content.innerHTML =
+      '<div style="font-size:14px;font-weight:700;color:#64748b;margin-bottom:6px">📦 냉장고 재료 없음 → 일반 추천</div>' +
+      '<div style="font-size:13px;color:#94a3b8;margin-bottom:10px">재료를 먼저 분석하면 냉장고에 있는 식재료로 딱 맞는 식단을 짜드려요.</div>' +
+      '<button class="btn btn-outline" style="padding:10px;font-size:14px" onclick="switchTab(\'fridge\')">📸 냉장고 분석하러 가기</button>';
+  }
 }
 
 function onDietToggle() {
@@ -1293,14 +1328,19 @@ async function recommendMeals() {
   if (!apiKey) { showToast('API 키를 먼저 입력해주세요'); return; }
   if (!state.profile) { showToast('먼저 ⚙️에서 내 정보를 입력해주세요'); openSettings('profile'); return; }
 
-  // 연타 방지: 버튼 비활성화
   const btn = document.querySelector('#page-meal .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 추천 중...'; }
-  showApiLoading('✨ 식단 구성 중...', '오늘의 맞춤 식단을 만들고 있어요');
-  const target = calcDailyTarget();
+
   const day = getDay(currentDate);
-  const ingredientHint = day.ingredients.length > 0
-    ? '가능하면 다음 재료를 활용하세요: ' + day.ingredients.join(', ')
+  const ingCount = (day.ingredients || []).length;
+  const overlayMsg = ingCount > 0 ? '🧅 냉장고 재료로 식단 구성 중...' : '✨ 식단 구성 중...';
+  const overlaySub = ingCount > 0 ? '재료 ' + ingCount + '개를 최대한 활용할게요' : '오늘의 맞춤 식단을 만들고 있어요';
+  showApiLoading(overlayMsg, overlaySub);
+
+  const target = calcDailyTarget();
+  const ingredientHint = ingCount > 0
+    ? '반드시 다음 재료를 최대한 활용해서 식단을 구성하세요: ' + day.ingredients.join(', ') + NL +
+      '위 재료 중 가능한 많은 재료를 각 끼니에 분산해서 사용하세요. 재료를 전혀 활용하지 않는 메뉴는 마지막 선택입니다.'
     : '한국 가정에서 흔히 구할 수 있는 재료를 활용하세요.';
   const dietHint = state.dietMode ? '다이어트 모드(저칼로리·고단백 위주)' : '일반 균형식';
 
@@ -1341,7 +1381,7 @@ async function recommendMeals() {
     saveState();
     renderMeal();
     renderHome();
-    showToast('식단을 추천했습니다 ✅');
+    showToast(ingCount > 0 ? '냉장고 재료 기반 식단 완성 ✅' : '식단을 추천했습니다 ✅');
   } catch (e) {
     if (e.name === 'AbortError') {
       showToast('⏱️ 시간 초과 (25초). 네트워크 확인 후 다시 시도해주세요');
