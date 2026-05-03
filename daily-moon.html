@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#10b981">
+<!-- iOS PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Moon">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<!-- 홈 화면 아이콘 -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2310b981'/><text x='50%25' y='62%25' text-anchor='middle' font-size='110' font-family='Apple Color Emoji,Segoe UI Emoji'>🌙</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2310b981'/><text x='50%25' y='62%25' text-anchor='middle' font-size='38' font-family='Apple Color Emoji,Segoe UI Emoji'>🌙</text></svg>">
+<title>Daily Moon</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  html, body { height: 100%; overflow-x: hidden; overscroll-behavior-y: none; touch-action: pan-y; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: #f8fafc; color: #1e293b; font-size: 16px; line-height: 1.5;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+  body.modal-open { overflow: hidden; position: fixed; width: 100%; }
+  /* ============ 공통 ============ */
+  .header {
+    position: sticky; top: 0; z-index: 50;
+    background: #fff;
+    padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #f1f5f9; border: none; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .container { padding: 16px; }
+  .card {
+    background: #fff; border-radius: 16px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 15px; font-weight: 700; color: #475569;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+  .btn {
+    width: 100%; padding: 14px; border-radius: 12px;
+    border: none; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
+    min-height: 48px;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-primary { background: #10b981; color: #fff; }
+  .btn-secondary { background: #f1f5f9; color: #334155; }
+  .btn-outline { background: #fff; color: #10b981; border: 1.5px solid #10b981; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .input, .select {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1.5px solid #e2e8f0; font-size: 16px;
+    background: #fff; outline: none; min-height: 48px;
+  }
+  .input:focus, .select:focus { border-color: #10b981; }
+  .label { font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 6px; display: block; }
+  .form-row { margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+  }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-orange { background: #ffedd5; color: #9a3412; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-gray { background: #e2e8f0; color: #475569; }
+
+  /* ============ 하단 탭바 ============ */
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 1px solid #e2e8f0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ============ iOS 설치 안내 배너 ============ */
+  .install-banner {
+    position: fixed; left: 12px; right: 12px;
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    background: #1e293b; color: #fff;
+    border-radius: 14px; padding: 14px;
+    z-index: 150; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    display: none;
+    animation: slideUp 0.3s ease-out;
+  }
+  .install-banner.show { display: block; }
+  .install-banner .ib-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .install-banner .ib-desc { font-size: 13px; opacity: 0.85; line-height: 1.5; }
+  .install-banner .ib-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .install-banner button {
+    flex: 1; padding: 10px; border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .install-banner .ib-primary { background: #10b981; color: #fff; }
+  .install-banner .ib-secondary { background: rgba(255,255,255,0.15); color: #fff; }
+  .tab-item {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 0 8px; gap: 2px;
+    background: none; border: none; cursor: pointer;
+    color: #94a3b8; font-size: 11px; font-weight: 600;
+  }
+  .tab-item.active { color: #10b981; }
+  .tab-item .tab-icon { font-size: 22px; }
+
+  /* ============ 페이지 토글 ============ */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ============ 모달 ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 200; display: none; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #fff; width: 100%; max-width: 500px;
+    border-radius: 20px 20px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    max-height: 90vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle {
+    width: 40px; height: 4px; background: #cbd5e1;
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 20px; max-height: 80vh; }
+  }
+
+  /* ============ 홈 탭 ============ */
+  .calorie-ring-wrap {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 20px; padding: 24px; color: #fff;
+    text-align: center; margin-bottom: 16px;
+  }
+  .calorie-big { font-size: 36px; font-weight: 800; line-height: 1.1; }
+  .calorie-label { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+  .calorie-bar {
+    background: rgba(255,255,255,0.25); height: 8px; border-radius: 4px;
+    margin-top: 14px; overflow: hidden;
+  }
+  .calorie-bar-fill {
+    background: #fff; height: 100%; transition: width 0.4s;
+  }
+  .calorie-detail {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    margin-top: 14px; font-size: 13px;
+  }
+  .calorie-detail div { text-align: center; }
+  .calorie-detail .num { font-size: 18px; font-weight: 700; }
+
+  /* ============ 식단 4분할 ============ */
+  .meal-card {
+    background: #fff; border-radius: 14px; padding: 14px;
+    margin-bottom: 10px; border-left: 4px solid #10b981;
+    cursor: pointer;
+  }
+  .meal-card:active { background: #f8fafc; }
+  .meal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .meal-time { font-size: 12px; color: #94a3b8; font-weight: 600; }
+  .meal-name { font-size: 16px; font-weight: 700; color: #1e293b; }
+  .meal-cal { font-size: 14px; color: #10b981; font-weight: 700; }
+  .meal-empty { color: #94a3b8; font-style: italic; font-size: 14px; }
+  .meal-icons { font-size: 22px; }
+
+  /* ============ 다이어트 토글 ============ */
+  .toggle-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fff; padding: 14px 16px; border-radius: 14px; margin-bottom: 12px;
+  }
+  .toggle-row .lbl { font-weight: 600; font-size: 15px; }
+  .toggle-row .desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .switch { position: relative; width: 50px; height: 28px; }
+  .switch input { display: none; }
+  .slider {
+    position: absolute; inset: 0; background: #cbd5e1;
+    border-radius: 28px; cursor: pointer; transition: 0.2s;
+  }
+  .slider::before {
+    content: ''; position: absolute; height: 22px; width: 22px;
+    left: 3px; top: 3px; background: #fff; border-radius: 50%;
+    transition: 0.2s;
+  }
+  input:checked + .slider { background: #10b981; }
+  input:checked + .slider::before { transform: translateX(22px); }
+
+  /* ============ 냉장고 탭 ============ */
+  .upload-area {
+    border: 2px dashed #cbd5e1; border-radius: 16px;
+    padding: 40px 20px; text-align: center; background: #fff;
+    cursor: pointer;
+  }
+  .upload-area.has-image { padding: 12px; border-style: solid; border-color: #10b981; }
+  .upload-icon { font-size: 48px; margin-bottom: 12px; }
+  .upload-preview { width: 100%; max-height: 280px; object-fit: cover; border-radius: 10px; }
+  .ingredient-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #ecfdf5; color: #047857;
+    padding: 8px 12px; border-radius: 999px;
+    font-size: 14px; font-weight: 600; margin: 4px 6px 4px 0;
+  }
+  .ingredient-chip .x {
+    background: #10b981; color: #fff; width: 24px; height: 24px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; cursor: pointer;
+    /* 실제 시각 크기는 24px, 터치 영역은 패딩으로 44px 확보 */
+    position: relative;
+  }
+  .ingredient-chip .x::after {
+    content: ''; position: absolute;
+    top: -10px; right: -10px; bottom: -10px; left: -10px;
+  }
+  .recipe-card {
+    background: #fff; border-radius: 14px; padding: 14px;
+    margin-bottom: 10px; border-left: 4px solid #f59e0b;
+  }
+  .recipe-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .recipe-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .recipe-desc { font-size: 14px; color: #475569; }
+
+  /* ============ 운동 탭 ============ */
+  .exercise-filter {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .filter-btn {
+    flex: 1; padding: 10px; border-radius: 10px;
+    border: 1.5px solid #e2e8f0; background: #fff;
+    font-size: 14px; font-weight: 600; color: #64748b;
+    cursor: pointer; min-height: 48px;
+  }
+  .filter-btn.active { background: #10b981; color: #fff; border-color: #10b981; }
+  .exercise-card {
+    background: #fff; border-radius: 14px; padding: 14px;
+    margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .exercise-info .name { font-size: 16px; font-weight: 700; }
+  .exercise-info .meta { font-size: 13px; color: #64748b; margin-top: 4px; }
+  .exercise-cal { text-align: right; }
+  .exercise-cal .num { font-size: 20px; font-weight: 800; color: #10b981; }
+  .exercise-cal .unit { font-size: 11px; color: #94a3b8; }
+  .exercise-card .add-btn {
+    background: #10b981; color: #fff; border: none;
+    padding: 10px 16px; border-radius: 8px; font-weight: 600;
+    cursor: pointer; font-size: 13px; margin-left: 10px;
+    min-height: 44px; min-width: 52px; white-space: nowrap;
+  }
+
+  /* ============ 로딩 ============ */
+  .loading {
+    display: flex; justify-content: center; align-items: center; padding: 40px;
+    flex-direction: column; gap: 12px;
+  }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid #e2e8f0;
+    border-top-color: #10b981; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============ API 로딩 오버레이 ============ */
+  .api-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+  }
+  .api-overlay.active { display: flex; }
+  .api-overlay .api-spinner {
+    width: 52px; height: 52px;
+    border: 4px solid rgba(255,255,255,0.18);
+    border-top-color: #10b981;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+  .api-overlay .api-msg {
+    color: #fff; font-size: 19px; font-weight: 700; letter-spacing: -0.3px;
+  }
+  .api-overlay .api-sub {
+    color: rgba(255,255,255,0.6); font-size: 14px; margin-top: -10px;
+  }
+
+  /* ============ 설정 탭 ============ */
+  .stab-wrap {
+    display: flex; border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 20px;
+  }
+  .stab-btn {
+    flex: 1; padding: 10px 4px 12px; background: none;
+    border: none; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; font-size: 13px; font-weight: 700;
+    color: #94a3b8; cursor: pointer; min-height: 44px;
+  }
+  .stab-btn.active { color: #10b981; border-bottom-color: #10b981; }
+
+  .toast {
+    position: fixed; top: calc(70px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: #fff; padding: 10px 18px;
+    border-radius: 999px; font-size: 14px; z-index: 300;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+    max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ============ 공통 헤더 ============ -->
+<div class="header">
+  <h1 id="headerTitle">🌙 Daily Moon</h1>
+  <button class="icon-btn" onclick="openSettings()">⚙️</button>
+</div>
+
+<!-- ============ 홈 탭 ============ -->
+<div id="page-home" class="page active">
+  <div class="container">
+    <div class="calorie-ring-wrap">
+      <div class="calorie-big" id="netCalorie">0</div>
+      <div class="calorie-label" id="calorieLabel">오늘의 칼로리 수지 (목표 대비)</div>
+      <div class="calorie-bar"><div class="calorie-bar-fill" id="calorieBarFill" style="width:0%"></div></div>
+      <div class="calorie-detail">
+        <div><div class="num" id="targetCal">0</div>목표</div>
+        <div><div class="num" id="intakeCal">0</div>섭취</div>
+        <div><div class="num" id="burnCal">0</div>소모</div>
+      </div>
+      <div id="profileNudge" style="display:none;margin-top:14px;background:rgba(255,255,255,0.2);border-radius:10px;padding:10px;font-size:13px;line-height:1.5">
+        ⚙️ 우측 상단 설정에서 내 정보를 입력하면<br>칼로리 목표가 자동 계산됩니다
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🍽️ 오늘의 식단</div>
+      <div id="homeMealSummary" style="font-size:14px;color:#64748b">아직 식단을 추천받지 않으셨습니다.</div>
+      <button class="btn btn-outline" style="margin-top:12px" onclick="switchTab('meal')">식단 보러가기</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏃 오늘의 운동</div>
+      <div id="homeExerciseSummary" style="font-size:14px;color:#64748b">아직 운동 기록이 없습니다.</div>
+      <button class="btn btn-outline" style="margin-top:12px" onclick="switchTab('exercise')">운동 추천받기</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 오늘 날짜 · 다른 날짜 보기</div>
+      <input type="date" class="input" id="dateSelector" onchange="loadDate(this.value)">
+    </div>
+  </div>
+</div>
+
+<!-- ============ 냉장고 탭 ============ -->
+<div id="page-fridge" class="page">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">📸 냉장고 사진을 올려주세요</div>
+      <div class="upload-area" id="uploadArea" onclick="openPhotoChoice()">
+        <div id="uploadEmpty">
+          <div class="upload-icon">📷</div>
+          <div style="font-weight:600;margin-bottom:4px">사진 촬영 또는 선택</div>
+          <div style="font-size:13px;color:#94a3b8">분석 후 사진은 자동 삭제됩니다</div>
+        </div>
+        <img id="uploadPreview" class="upload-preview" style="display:none">
+      </div>
+      <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+      <input type="file" id="photoInputGallery" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+      <button class="btn btn-primary" id="analyzeBtn" style="margin-top:12px;display:none" onclick="analyzeFridge()">🔍 재료 분석하기</button>
+    </div>
+
+    <div class="card" id="ingredientsCard" style="display:none">
+      <div class="card-title">🥬 인식된 재료 <span style="font-size:12px;color:#94a3b8;font-weight:400">(틀린 건 X 눌러 삭제)</span></div>
+      <div id="ingredientsList"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input class="input" id="addIngredientInput" placeholder="재료 추가 (예: 양파)" style="flex:1" onkeydown="if(event.key==='Enter')addIngredient()">
+        <button class="btn btn-secondary" style="width:auto;padding:0 16px" onclick="addIngredient()">추가</button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="recommendRecipes()">🍳 요리 추천받기</button>
+    </div>
+
+    <div id="recipesArea"></div>
+  </div>
+</div>
+
+<!-- ============ 식단 탭 ============ -->
+<div id="page-meal" class="page">
+  <div class="container">
+    <div class="toggle-row">
+      <div>
+        <div class="lbl">🥗 다이어트 모드</div>
+        <div class="desc">저칼로리·고단백 위주 추천</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="dietMode" onchange="onDietToggle()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="card" id="dietTargetCard" style="display:none">
+      <div class="card-title">🎯 오늘의 목표 칼로리</div>
+      <div style="font-size:24px;font-weight:800;color:#10b981" id="dailyTargetDisplay">- kcal</div>
+      <div style="font-size:13px;color:#64748b;margin-top:4px" id="dailyTargetDesc"></div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-bottom:14px" onclick="recommendMeals()">✨ AI 식단 추천받기</button>
+
+    <div class="meal-card" onclick="showMealDetail('breakfast')">
+      <div class="meal-header">
+        <span class="meal-time">🌅 아침</span>
+        <span class="meal-cal" id="cal-breakfast">- kcal</span>
+      </div>
+      <div class="meal-name" id="name-breakfast"><span class="meal-empty">추천을 받아보세요</span></div>
+    </div>
+
+    <div class="meal-card" onclick="showMealDetail('lunch')">
+      <div class="meal-header">
+        <span class="meal-time">☀️ 점심</span>
+        <span class="meal-cal" id="cal-lunch">- kcal</span>
+      </div>
+      <div class="meal-name" id="name-lunch"><span class="meal-empty">추천을 받아보세요</span></div>
+    </div>
+
+    <div class="meal-card" onclick="showMealDetail('dinner')">
+      <div class="meal-header">
+        <span class="meal-time">🌙 저녁</span>
+        <span class="meal-cal" id="cal-dinner">- kcal</span>
+      </div>
+      <div class="meal-name" id="name-dinner"><span class="meal-empty">추천을 받아보세요</span></div>
+    </div>
+
+    <div class="meal-card" onclick="showMealDetail('snack')">
+      <div class="meal-header">
+        <span class="meal-time">🍎 간식</span>
+        <span class="meal-cal" id="cal-snack">- kcal</span>
+      </div>
+      <div class="meal-name" id="name-snack"><span class="meal-empty">추천을 받아보세요</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 운동 탭 ============ -->
+<div id="page-exercise" class="page">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">⏱️ 운동 가능 시간</div>
+      <div class="grid-4">
+        <button class="filter-btn time-btn active" data-min="30" onclick="setTime(30, this)">30분</button>
+        <button class="filter-btn time-btn" data-min="45" onclick="setTime(45, this)">45분</button>
+        <button class="filter-btn time-btn" data-min="60" onclick="setTime(60, this)">60분</button>
+        <button class="filter-btn time-btn" data-min="90" onclick="setTime(90, this)">90분</button>
+      </div>
+    </div>
+
+    <div class="exercise-filter">
+      <button class="filter-btn loc-btn active" data-loc="all" onclick="setLocation('all', this)">전체</button>
+      <button class="filter-btn loc-btn" data-loc="indoor" onclick="setLocation('indoor', this)">🏠 실내</button>
+      <button class="filter-btn loc-btn" data-loc="outdoor" onclick="setLocation('outdoor', this)">🌳 실외</button>
+    </div>
+
+    <div id="exerciseList"></div>
+
+    <div class="card" id="todayExerciseCard" style="display:none;margin-top:14px">
+      <div class="card-title">✅ 오늘 완료한 운동</div>
+      <div id="todayExerciseList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ iOS 설치 안내 ============ -->
+<div class="install-banner" id="installBanner">
+  <div class="ib-title">📱 홈 화면에 추가하면 앱처럼 사용 가능합니다</div>
+  <div class="ib-desc">사파리 하단 <b>공유 버튼</b> → <b>"홈 화면에 추가"</b>를 눌러주세요</div>
+  <div class="ib-actions">
+    <button class="ib-secondary" onclick="dismissInstall()">나중에</button>
+    <button class="ib-primary" onclick="dismissInstall(true)">알겠습니다</button>
+  </div>
+</div>
+
+<!-- ============ 하단 탭바 ============ -->
+<div class="tabbar">
+  <button class="tab-item active" data-tab="home" onclick="switchTab('home')">
+    <span class="tab-icon">🏠</span><span>홈</span>
+  </button>
+  <button class="tab-item" data-tab="fridge" onclick="switchTab('fridge')">
+    <span class="tab-icon">📸</span><span>냉장고</span>
+  </button>
+  <button class="tab-item" data-tab="meal" onclick="switchTab('meal')">
+    <span class="tab-icon">🍽️</span><span>식단</span>
+  </button>
+  <button class="tab-item" data-tab="exercise" onclick="switchTab('exercise')">
+    <span class="tab-icon">🏃</span><span>운동</span>
+  </button>
+</div>
+
+<!-- ============ 모달 (재사용) ============ -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- ============ API 로딩 오버레이 ============ -->
+<div class="api-overlay" id="apiOverlay">
+  <div class="api-spinner"></div>
+  <div class="api-msg" id="apiOverlayMsg">분석 중...</div>
+  <div class="api-sub" id="apiOverlaySub">잠시만 기다려주세요</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 전역 데이터 / 상수
+// ============================================================
+const NL = String.fromCharCode(10);
+const STORE_KEY = 'fridge_chef_data_v1';
+const API_KEY_STORE = 'fridge_chef_api_key';
+
+// MET 운동 데이터베이스 (실내 + 실외)
+const EXERCISES = [
+  // 실내
+  { name: '스트레칭', met: 2.3, loc: 'indoor', icon: '🤸', desc: '가벼운 전신 스트레칭' },
+  { name: '요가', met: 2.5, loc: 'indoor', icon: '🧘', desc: '기본 자세 위주의 요가' },
+  { name: '필라테스', met: 3.0, loc: 'indoor', icon: '🤸‍♀️', desc: '코어 강화 운동' },
+  { name: '홈트(가벼운)', met: 3.5, loc: 'indoor', icon: '💪', desc: '맨몸 가벼운 운동' },
+  { name: '홈트(중강도)', met: 5.0, loc: 'indoor', icon: '🏋️', desc: '스쿼트·푸쉬업 등' },
+  { name: '실내 자전거', met: 6.8, loc: 'indoor', icon: '🚴', desc: '중강도 페달링' },
+  { name: '계단 오르기', met: 8.8, loc: 'indoor', icon: '🪜', desc: '아파트 계단도 OK' },
+  { name: '줄넘기', met: 11.8, loc: 'indoor', icon: '🪢', desc: '가장 효율 높은 운동' },
+  // 실외
+  { name: '산책', met: 3.5, loc: 'outdoor', icon: '🚶', desc: '천천히 걷기' },
+  { name: '빠른 걷기', met: 5.0, loc: 'outdoor', icon: '🚶‍♂️', desc: '시속 5~6km 페이스' },
+  { name: '가벼운 조깅', met: 6.0, loc: 'outdoor', icon: '🏃‍♂️', desc: '편하게 달리기' },
+  { name: '달리기', met: 8.0, loc: 'outdoor', icon: '🏃', desc: '시속 8km 이상' },
+  { name: '등산', met: 6.0, loc: 'outdoor', icon: '⛰️', desc: '동네 야산 정도' },
+  { name: '자전거', met: 6.8, loc: 'outdoor', icon: '🚲', desc: '실외 라이딩' },
+  { name: '수영', met: 6.0, loc: 'outdoor', icon: '🏊', desc: '자유형 기준' },
+  { name: '배드민턴', met: 5.5, loc: 'outdoor', icon: '🏸', desc: '취미 수준 게임' },
+];
+
+// 상태
+let state = loadState();
+let currentTab = 'home';
+let currentDate = todayKey();
+let currentPhotoBase64 = null;
+let exerciseTime = 30;
+let exerciseLoc = 'all';
+
+// ============================================================
+// 저장소 (localStorage)
+// ============================================================
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.error(e); }
+  return {
+    profile: null,           // { height, weight, target, activity, age, gender }
+    dietMode: false,
+    days: {}                 // { '2026-05-03': { meals:{...}, exercises:[...], ingredients:[...] } }
+  };
+}
+
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { showToast('저장 실패: ' + e.message); }
+}
+
+function getDay(date) {
+  if (!state.days[date]) {
+    state.days[date] = { meals: {}, exercises: [], ingredients: [] };
+  }
+  return state.days[date];
+}
+
+// ============================================================
+// 탭 전환
+// ============================================================
+function switchTab(tab) {
+  // API 로딩 중이면 탭 전환 차단
+  if (isApiLoading()) {
+    showToast('⏳ 분석이 끝난 후 이동해 주세요');
+    return;
+  }
+  currentTab = tab;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab-item[data-tab="' + tab + '"]').classList.add('active');
+
+  const titles = { home: '🌙 Daily Moon', fridge: '📸 냉장고 분석', meal: '🍽️ 오늘의 식단', exercise: '🏃 운동 추천' };
+  document.getElementById('headerTitle').textContent = titles[tab];
+
+  // 탭별 렌더링
+  if (tab === 'home') renderHome();
+  if (tab === 'fridge') renderIngredients();
+  if (tab === 'meal') renderMeal();
+  if (tab === 'exercise') renderExercise();
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// 토스트 / 모달
+// ============================================================
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// API 로딩 오버레이 (탭 전환 차단)
+// ============================================================
+function showApiLoading(msg, sub) {
+  document.getElementById('apiOverlayMsg').textContent = msg || 'AI 분석 중...';
+  document.getElementById('apiOverlaySub').textContent = sub || '잠시만 기다려주세요';
+  document.getElementById('apiOverlay').classList.add('active');
+}
+function hideApiLoading() {
+  document.getElementById('apiOverlay').classList.remove('active');
+}
+function isApiLoading() {
+  return document.getElementById('apiOverlay').classList.contains('active');
+}
+
+function openModal(html) {
+  // 모달이 처음 열릴 때만 스크롤 위치 저장 (중첩 시 덮어쓰기 방지)
+  if (!document.body.classList.contains('modal-open')) {
+    window._scrollY = window.scrollY;
+    document.body.style.top = '-' + window._scrollY + 'px';
+    document.body.classList.add('modal-open');
+  }
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modal').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  // iOS: position:fixed 해제 직후 scrollTo가 씹히므로 다음 프레임에서 실행
+  const y = window._scrollY;
+  if (typeof y === 'number') {
+    requestAnimationFrame(function() { window.scrollTo(0, y); });
+  }
+}
+
+// ============================================================
+// 설정 / API 키
+// ============================================================
+function getApiKey() {
+  return localStorage.getItem(API_KEY_STORE) || '';
+}
+function setApiKey(k) {
+  localStorage.setItem(API_KEY_STORE, k);
+}
+
+function openSettings(activeTab) {
+  if (isApiLoading()) { showToast('⏳ 분석이 끝난 후 설정을 열어주세요'); return; }
+  activeTab = activeTab || 'api';
+
+  const tb = function(id, label) {
+    return '<button class="stab-btn' + (activeTab === id ? ' active' : '') +
+           '" onclick="openSettings(\'' + id + '\')">' + label + '</button>';
+  };
+  const tabBar =
+    '<div class="modal-title">⚙️ 설정</div>' +
+    '<div class="stab-wrap">' +
+      tb('api',     '🔑 API 키') +
+      tb('profile', '👤 내 정보') +
+      tb('other',   '⚙️ 기타') +
+    '</div>';
+
+  let content = '';
+
+  if (activeTab === 'api') {
+    const apiKey = getApiKey();
+    const masked = apiKey ? apiKey.slice(0, 10) + '...' + apiKey.slice(-4) : '미설정';
+    content =
+      '<div style="font-size:13px;color:#64748b;margin-bottom:8px">현재: ' + masked + '</div>' +
+      '<input class="input" id="apiKeyInput" placeholder="sk-ant-api03-..." value="' + apiKey + '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">' +
+      '<div style="font-size:12px;color:#94a3b8;margin:6px 0 12px">Anthropic Console → API Keys에서 발급받으세요.</div>' +
+      '<button class="btn btn-primary" onclick="saveApiKeyAndNext()">API 키 저장 → 내 정보 입력</button>' +
+      '<button class="btn btn-secondary" style="margin-top:8px" onclick="saveApiKey()">저장만 하기</button>';
+
+  } else if (activeTab === 'profile') {
+    const p = state.profile || {};
+    content =
+      '<div class="form-row"><label class="label">나이</label>' +
+        '<input class="input" type="number" id="profAge" value="' + (p.age||'') + '" placeholder="예: 30"></div>' +
+      '<div class="form-row"><label class="label">성별</label>' +
+        '<select class="select" id="profGender">' +
+          '<option value="male"' + (p.gender==='male'?' selected':'') + '>남성</option>' +
+          '<option value="female"' + (p.gender==='female'?' selected':'') + '>여성</option>' +
+        '</select></div>' +
+      '<div class="grid-2">' +
+        '<div class="form-row"><label class="label">키 (cm)</label>' +
+          '<input class="input" type="number" id="profHeight" value="' + (p.height||'') + '" placeholder="170"></div>' +
+        '<div class="form-row"><label class="label">몸무게 (kg)</label>' +
+          '<input class="input" type="number" id="profWeight" value="' + (p.weight||'') + '" placeholder="70"></div>' +
+      '</div>' +
+      '<div class="form-row"><label class="label">목표 몸무게 (kg)</label>' +
+        '<input class="input" type="number" id="profTarget" value="' + (p.target||'') + '" placeholder="65"></div>' +
+      '<div class="form-row"><label class="label">활동량</label>' +
+        '<select class="select" id="profActivity">' +
+          '<option value="1.2"'    + (p.activity==='1.2'?    ' selected':'') + '>거의 운동 안 함</option>' +
+          '<option value="1.375"'  + (p.activity==='1.375'?  ' selected':'') + '>가벼운 활동 (주 1~3회)</option>' +
+          '<option value="1.55"'   + (p.activity==='1.55'?   ' selected':'') + '>보통 활동 (주 3~5회)</option>' +
+          '<option value="1.725"'  + (p.activity==='1.725'?  ' selected':'') + '>활발한 활동 (주 6~7회)</option>' +
+        '</select></div>' +
+      '<button class="btn btn-primary" onclick="saveProfile()">프로필 저장</button>';
+
+  } else {
+    const ios = isIOS();
+    content =
+      '<div class="card-title">💾 데이터 백업 / 복원</div>' +
+      '<div style="font-size:12px;color:#64748b;margin-bottom:10px">사파리 캐시 삭제 시 데이터가 사라질 수 있습니다.</div>' +
+      '<button class="btn btn-secondary" style="margin-bottom:8px" onclick="backupData()">📥 백업 파일 내려받기</button>' +
+      '<input type="file" id="restoreInput" accept="application/json" style="display:none" onchange="restoreData(event.target.files[0])">' +
+      '<button class="btn btn-secondary" onclick="document.getElementById(\'restoreInput\').click()">📤 백업 파일 복원하기</button>' +
+      '<div class="card-title" style="margin-top:20px">📱 앱처럼 사용하기</div>' +
+      (ios
+        ? '<div style="font-size:14px;line-height:1.8;background:#f8fafc;padding:14px;border-radius:12px">' +
+          '<b>1.</b> 사파리 하단 공유 버튼 ⬆️ 탭<br>' +
+          '<b>2.</b> 메뉴에서 <b>"홈 화면에 추가"</b> 탭<br>' +
+          '<b>3.</b> 우측 상단 <b>"추가"</b> → 완료!<br>' +
+          '<span style="font-size:12px;color:#94a3b8">반드시 사파리에서 진행하세요.</span></div>'
+        : '<div style="font-size:14px;color:#64748b">크롬 메뉴 → "홈 화면에 추가"를 이용하세요.</div>');
+  }
+
+  const html = tabBar + content +
+    '<button class="btn btn-secondary" style="margin-top:16px" onclick="closeModal()">닫기</button>';
+  openModal(html);
+}
+
+function saveApiKeyAndNext() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v.startsWith('sk-ant-')) { showToast('API 키 형식이 올바르지 않습니다 (sk-ant- 로 시작)'); return; }
+  setApiKey(v);
+  showToast('API 키 저장 완료 ✅');
+  openSettings('profile');
+}
+
+function saveApiKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v.startsWith('sk-ant-')) {
+    showToast('API 키 형식이 올바르지 않습니다');
+    return;
+  }
+  setApiKey(v);
+  showToast('API 키가 저장되었습니다');
+}
+
+function saveProfile() {
+  const age = parseInt(document.getElementById('profAge').value);
+  const height = parseFloat(document.getElementById('profHeight').value);
+  const weight = parseFloat(document.getElementById('profWeight').value);
+  const target = parseFloat(document.getElementById('profTarget').value);
+  const gender = document.getElementById('profGender').value;
+  const activity = document.getElementById('profActivity').value;
+
+  if (!age || !height || !weight || !target) {
+    showToast('모든 항목을 입력해주세요');
+    return;
+  }
+  state.profile = { age, height, weight, target, gender, activity };
+  saveState();
+  showToast('프로필이 저장되었습니다');
+  closeModal();
+  renderHome();
+}
+
+// ============================================================
+// 칼로리 계산 (BMR + TDEE)
+// ============================================================
+function calcDailyTarget() {
+  const p = state.profile;
+  if (!p) return null;
+  // Mifflin-St Jeor 공식
+  let bmr;
+  if (p.gender === 'male') {
+    bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age + 5;
+  } else {
+    bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age - 161;
+  }
+  const tdee = bmr * parseFloat(p.activity);
+  // 다이어트 모드: 목표 체중까지 감량 권장 (500 kcal 차감, 안전선 1200)
+  if (state.dietMode && p.target < p.weight) {
+    return Math.max(1200, Math.round(tdee - 500));
+  }
+  return Math.round(tdee);
+}
+
+function calcExerciseCalorie(met, minutes) {
+  const w = state.profile ? state.profile.weight : 70;
+  return Math.round(met * w * (minutes / 60));
+}
+
+// ============================================================
+// 홈 화면
+// ============================================================
+function renderHome() {
+  const target = calcDailyTarget() || 0;
+  const day = getDay(currentDate);
+
+  let intake = 0;
+  Object.values(day.meals).forEach(m => { if (m && m.calorie) intake += m.calorie; });
+  let burn = 0;
+  day.exercises.forEach(e => burn += e.calorie);
+
+  const net = intake - burn;
+  document.getElementById('targetCal').textContent = target;
+  document.getElementById('intakeCal').textContent = intake;
+  document.getElementById('burnCal').textContent = burn;
+  document.getElementById('netCalorie').textContent = (net >= 0 ? '+' : '') + net;
+
+  const pct = target > 0 ? Math.min(100, Math.round(net / target * 100)) : 0;
+  document.getElementById('calorieBarFill').style.width = Math.max(0, pct) + '%';
+
+  // 프로필 없을 때 안내
+  const nudge = document.getElementById('profileNudge');
+  if (nudge) nudge.style.display = state.profile ? 'none' : 'block';
+
+  // 식단 요약
+  const meals = day.meals;
+  const mealNames = ['breakfast','lunch','dinner','snack'].filter(k => meals[k]).map(k => meals[k].name);
+  document.getElementById('homeMealSummary').textContent = mealNames.length > 0
+    ? mealNames.join(' · ')
+    : '아직 식단을 추천받지 않으셨습니다.';
+
+  // 운동 요약
+  document.getElementById('homeExerciseSummary').textContent = day.exercises.length > 0
+    ? day.exercises.map(e => e.name + '(' + e.minutes + '분)').join(' · ')
+    : '아직 운동 기록이 없습니다.';
+
+  // 날짜 셀렉터
+  const ds = document.getElementById('dateSelector');
+  if (ds) ds.value = currentDate;
+}
+
+function loadDate(d) {
+  currentDate = d;
+  renderHome();
+}
+
+// ============================================================
+// 냉장고: 사진 처리 + Vision API
+// ============================================================
+function openPhotoChoice() {
+  const html =
+    '<div class="modal-title">📸 사진 가져오기</div>' +
+    '<div style="font-size:14px;color:#64748b;margin-bottom:14px">냉장고 안이 잘 보이는 사진이면 됩니다.</div>' +
+    '<button class="btn btn-primary" style="margin-bottom:10px" onclick="triggerPhoto(\'camera\')">📷 카메라로 촬영</button>' +
+    '<button class="btn btn-secondary" style="margin-bottom:10px" onclick="triggerPhoto(\'gallery\')">🖼️ 사진첩에서 선택</button>' +
+    '<button class="btn btn-outline" onclick="closeModal()">취소</button>';
+  openModal(html);
+}
+
+function triggerPhoto(type) {
+  const id = type === 'camera' ? 'photoInputCamera' : 'photoInputGallery';
+  const input = document.getElementById(id);
+  input.value = ''; // 같은 파일 재선택 가능하게
+  // iOS: 반드시 사용자 터치 이벤트 핸들러 안에서 동기 호출해야 파일 picker가 열림
+  // setTimeout 사용 시 iOS가 "사용자 제스처 없음"으로 차단함
+  input.click();
+  // click() 호출 후 모달 닫기 (카메라 UI가 열리는 동안 뒤에서 닫힘)
+  closeModal();
+}
+
+function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // 1. 파일 크기 검사 (50MB 초과 차단)
+  if (file.size > 50 * 1024 * 1024) {
+    showToast('사진이 너무 큽니다 (50MB 초과)');
+    return;
+  }
+
+  // 2. HEIC/HEIF 사전 감지 (파일명·MIME 기반)
+  const fname = (file.name || '').toLowerCase();
+  const ftype = (file.type || '').toLowerCase();
+  const isHeic = fname.endsWith('.heic') || fname.endsWith('.heif') ||
+                 ftype === 'image/heic' || ftype === 'image/heif';
+
+  if (isHeic) {
+    // 사파리는 보통 자동 변환하지만, MIME이 그대로 heic면 변환 실패 가능성 높음
+    showHeicHelp();
+    return;
+  }
+
+  // 3. 로딩 표시
+  showToast('사진 처리 중...');
+
+  const reader = new FileReader();
+  reader.onerror = function() {
+    showToast('사진 읽기 실패. 다른 사진으로 다시 시도해주세요.');
+  };
+  reader.onload = function(ev) {
+    const img = new Image();
+
+    // 4. 이미지 디코딩 실패 처리 (HEIC, 손상 파일 등)
+    img.onerror = function() {
+      showToast('이 사진 형식은 지원되지 않습니다');
+      showHeicHelp();
+    };
+
+    img.onload = function() {
+      try {
+        // 5. 빈 이미지 / 비정상 크기 검사
+        if (!img.width || !img.height) {
+          showToast('사진을 읽을 수 없습니다');
+          return;
+        }
+
+        // 6. 1024px로 리사이즈 (Vision 비용·속도 최적화)
+        const maxSize = 1024;
+        let w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else { w = Math.round(w * maxSize / h); h = maxSize; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // iOS 사파리 일부 케이스에서 흰 배경이 검게 나오는 것 방지
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // 7. 변환 결과 검증
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        if (!dataUrl || dataUrl.length < 1000 || !dataUrl.startsWith('data:image/jpeg')) {
+          showToast('사진 변환 실패. 다른 사진으로 시도해주세요.');
+          return;
+        }
+        currentPhotoBase64 = dataUrl.split(',')[1];
+
+        document.getElementById('uploadEmpty').style.display = 'none';
+        const prev = document.getElementById('uploadPreview');
+        prev.src = dataUrl;
+        prev.style.display = 'block';
+        document.getElementById('uploadArea').classList.add('has-image');
+        document.getElementById('analyzeBtn').style.display = 'block';
+      } catch (err) {
+        console.error('photo process error:', err);
+        showToast('사진 처리 중 오류: ' + err.message);
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// HEIC 호환성 안내 모달
+function showHeicHelp() {
+  const html =
+    '<div class="modal-title">⚠️ HEIC 사진은 처리할 수 없습니다</div>' +
+    '<div style="font-size:14px;line-height:1.7;color:#475569">' +
+      '아이폰 기본 사진 형식(HEIC)은 일부 경우 변환되지 않습니다.<br>' +
+      '아래 두 가지 중 한 가지로 해결할 수 있습니다.' +
+    '</div>' +
+    '<div style="background:#ecfdf5;padding:14px;border-radius:12px;margin-top:14px;font-size:14px;line-height:1.7">' +
+      '<b style="color:#047857">✅ 방법 1 (영구 해결, 권장)</b><br>' +
+      '<b>설정</b> → <b>카메라</b> → <b>포맷</b> → <b>"가장 호환성"</b> 선택<br>' +
+      '<span style="font-size:12px;color:#64748b">앞으로 찍는 모든 사진이 JPG로 저장되어 어디서나 잘 열립니다.</span>' +
+    '</div>' +
+    '<div style="background:#fef3c7;padding:14px;border-radius:12px;margin-top:10px;font-size:14px;line-height:1.7">' +
+      '<b style="color:#92400e">📷 방법 2 (지금 한 번만)</b><br>' +
+      '카메라로 <b>새로 사진 촬영</b>하면 사파리가 자동으로 JPG로 변환합니다.<br>' +
+      '<span style="font-size:12px;color:#64748b">사진첩의 기존 HEIC 사진은 안 될 수 있습니다.</span>' +
+    '</div>' +
+    '<button class="btn btn-primary" style="margin-top:16px" onclick="closeModal();openPhotoChoice()">📷 다시 시도</button>' +
+    '<button class="btn btn-secondary" style="margin-top:8px" onclick="closeModal()">닫기</button>';
+  openModal(html);
+}
+
+async function analyzeFridge() {
+  if (!currentPhotoBase64) { showToast('사진을 먼저 올려주세요'); return; }
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('설정에서 API 키를 먼저 입력해주세요'); openSettings(); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true; btn.textContent = '🔍 분석 중...';
+  showApiLoading('🔍 재료 분석 중...', '냉장고 사진을 AI가 살펴보고 있어요');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: controller.signal,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: currentPhotoBase64 } },
+            { type: 'text', text: '이 냉장고 사진을 보고, 보이는 식재료를 모두 한국어 이름으로 추출해주세요.' + NL +
+              '반드시 아래 JSON 형식만 출력하세요. 다른 설명·마크다운 금지:' + NL +
+              '{"ingredients": ["계란", "양파", "당근", ...]}' + NL +
+              '식재료가 아닌 물건(반찬통, 음료수 페트병 등)은 제외하고, 인식 가능한 식재료만 포함하세요.' }
+          ]
+        }]
+      })
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('API 오류: ' + res.status + ' - ' + err.substring(0, 200));
+    }
+    const data = await res.json();
+    const text = data.content[0].text.trim();
+    // JSON 파싱 (마크다운 ``` 제거)
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    const ingredients = parsed.ingredients || [];
+
+    // 사진은 즉시 폐기
+    currentPhotoBase64 = null;
+    document.getElementById('uploadEmpty').style.display = 'block';
+    document.getElementById('uploadPreview').style.display = 'none';
+    document.getElementById('uploadArea').classList.remove('has-image');
+
+    const day = getDay(currentDate);
+    day.ingredients = ingredients;
+    saveState();
+    renderIngredients();
+    showToast('재료 ' + ingredients.length + '개를 인식했습니다');
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      showToast('⏱️ 시간 초과 (25초). 네트워크 확인 후 다시 시도해주세요');
+    } else {
+      console.error(e);
+      showToast('분석 실패: ' + e.message);
+    }
+  } finally {
+    clearTimeout(timeoutId);
+    hideApiLoading();
+    btn.disabled = false; btn.textContent = '🔍 재료 분석하기';
+    document.getElementById('analyzeBtn').style.display = 'none';
+  }
+}
+
+function renderIngredients() {
+  const day = getDay(currentDate);
+  const list = document.getElementById('ingredientsList');
+  if (day.ingredients.length === 0) {
+    document.getElementById('ingredientsCard').style.display = 'none';
+    return;
+  }
+  document.getElementById('ingredientsCard').style.display = 'block';
+  list.innerHTML = day.ingredients.map((ing, i) =>
+    '<span class="ingredient-chip">' + ing + '<span class="x" onclick="removeIngredient(' + i + ')">×</span></span>'
+  ).join('');
+}
+
+function removeIngredient(i) {
+  const day = getDay(currentDate);
+  day.ingredients.splice(i, 1);
+  saveState();
+  renderIngredients();
+}
+
+function addIngredient() {
+  const inp = document.getElementById('addIngredientInput');
+  const v = inp.value.trim();
+  if (!v) return;
+  const day = getDay(currentDate);
+  if (!day.ingredients.includes(v)) day.ingredients.push(v);
+  saveState();
+  inp.value = '';
+  renderIngredients();
+}
+
+// ============================================================
+// 요리 추천 (Haiku - 비용 절감)
+// ============================================================
+async function recommendRecipes() {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('API 키를 먼저 입력해주세요'); return; }
+  const day = getDay(currentDate);
+  if (day.ingredients.length === 0) { showToast('재료를 먼저 추가해주세요'); return; }
+
+  const area = document.getElementById('recipesArea');
+  area.innerHTML = '';
+  showApiLoading('🍳 요리 추천 중...', '만들 수 있는 요리를 찾고 있어요');
+
+  const dietHint = state.dietMode
+    ? '사용자는 다이어트 중이므로, 저칼로리(400kcal 이하 권장)·고단백 위주 요리를 우선 추천하세요.'
+    : '균형 잡힌 일반 가정식 위주로 추천하세요.';
+
+  const rcController = new AbortController();
+  const rcTimeoutId = setTimeout(() => rcController.abort(), 25000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: rcController.signal,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2048,
+        messages: [{
+          role: 'user',
+          content: '아래 재료로 만들 수 있는 요리 5가지를 추천해주세요.' + NL +
+            '재료: ' + day.ingredients.join(', ') + NL +
+            dietHint + NL + NL +
+            '반드시 아래 JSON 형식만 출력하세요. 다른 설명·마크다운 금지:' + NL +
+            '{"recipes":[{"name":"요리명","calorie":380,"time":"15분","difficulty":"쉬움","desc":"한 줄 설명","steps":["단계1","단계2","단계3"]}]}' + NL +
+            'difficulty는 쉬움/보통/어려움 중 하나, time은 조리시간(분), calorie는 1인분 기준 kcal 정수입니다.'
+        }]
+      })
+    });
+    clearTimeout(rcTimeoutId);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('API 오류: ' + res.status);
+    }
+    const data = await res.json();
+    const text = data.content[0].text.trim();
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    renderRecipes(parsed.recipes || []);
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      area.innerHTML = '<div class="card" style="color:#ef4444;padding:16px">⏱️ 요청 시간이 초과되었습니다.<br>네트워크 확인 후 다시 시도해주세요.</div>';
+    } else {
+      console.error(e);
+      area.innerHTML = '<div class="card" style="color:#ef4444;padding:16px">추천 실패: ' + e.message + '</div>';
+    }
+  } finally {
+    clearTimeout(rcTimeoutId);
+    hideApiLoading();
+  }
+}
+
+let recipeCache = [];
+function renderRecipes(recipes) {
+  recipeCache = recipes;
+  const area = document.getElementById('recipesArea');
+  if (recipes.length === 0) { area.innerHTML = ''; return; }
+  area.innerHTML = '<div class="card-title" style="margin-top:16px">🍳 추천 요리 ' + recipes.length + '개</div>' +
+    recipes.map((r, i) =>
+      '<div class="recipe-card">' +
+        '<div class="recipe-name">' + r.name + '</div>' +
+        '<div class="recipe-meta">' +
+          '<span class="badge badge-orange">🔥 ' + r.calorie + ' kcal</span>' +
+          '<span class="badge badge-blue">⏱️ ' + r.time + '</span>' +
+          '<span class="badge badge-gray">' + r.difficulty + '</span>' +
+        '</div>' +
+        '<div class="recipe-desc">' + r.desc + '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
+          '<button class="btn btn-secondary" style="flex:1;min-width:120px;padding:10px;font-size:14px" onclick="showRecipeDetail(' + i + ')">📖 레시피</button>' +
+          '<button class="btn btn-outline" style="flex:1;min-width:120px;padding:10px;font-size:14px" onclick="addRecipeToMeal(' + i + ')">🍽️ 식단에 추가</button>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+}
+
+function showRecipeDetail(i) {
+  const r = recipeCache[i];
+  if (!r) return;
+  const stepsHtml = (r.steps || []).map((s, n) =>
+    '<div style="margin-bottom:8px"><b>' + (n+1) + '.</b> ' + s + '</div>'
+  ).join('');
+  const html =
+    '<div class="modal-title">📖 ' + r.name + '</div>' +
+    '<div class="recipe-meta" style="margin-bottom:14px">' +
+      '<span class="badge badge-orange">🔥 ' + r.calorie + ' kcal</span>' +
+      '<span class="badge badge-blue">⏱️ ' + r.time + '</span>' +
+      '<span class="badge badge-gray">' + r.difficulty + '</span>' +
+    '</div>' +
+    '<div style="font-size:14px;color:#475569;margin-bottom:14px">' + r.desc + '</div>' +
+    '<div class="card-title">🥘 조리 순서</div>' +
+    '<div style="font-size:14px">' + stepsHtml + '</div>' +
+    '<button class="btn btn-secondary" style="margin-top:14px" onclick="closeModal()">닫기</button>';
+  openModal(html);
+}
+
+function addRecipeToMeal(i) {
+  const r = recipeCache[i];
+  if (!r) return;
+  const html =
+    '<div class="modal-title">🍽️ 어느 끼니에 추가할까요?</div>' +
+    '<div style="font-weight:600;margin-bottom:14px">' + r.name + ' (' + r.calorie + ' kcal)</div>' +
+    '<button class="btn btn-secondary" style="margin-bottom:8px" onclick="confirmAddMeal(' + i + ',\'breakfast\')">🌅 아침</button>' +
+    '<button class="btn btn-secondary" style="margin-bottom:8px" onclick="confirmAddMeal(' + i + ',\'lunch\')">☀️ 점심</button>' +
+    '<button class="btn btn-secondary" style="margin-bottom:8px" onclick="confirmAddMeal(' + i + ',\'dinner\')">🌙 저녁</button>' +
+    '<button class="btn btn-secondary" style="margin-bottom:8px" onclick="confirmAddMeal(' + i + ',\'snack\')">🍎 간식</button>' +
+    '<button class="btn btn-outline" onclick="closeModal()">취소</button>';
+  openModal(html);
+}
+
+function confirmAddMeal(i, slot) {
+  const r = recipeCache[i];
+  if (!r) return;
+  const day = getDay(currentDate);
+  day.meals[slot] = { name: r.name, calorie: r.calorie, recipe: r };
+  saveState();
+  closeModal();
+  showToast(r.name + '을(를) 식단에 추가했습니다');
+  renderHome();
+}
+
+// ============================================================
+// 식단 (4분할 + 다이어트)
+// ============================================================
+function renderMeal() {
+  const day = getDay(currentDate);
+  const slots = ['breakfast', 'lunch', 'dinner', 'snack'];
+  slots.forEach(s => {
+    const m = day.meals[s];
+    const nameEl = document.getElementById('name-' + s);
+    const calEl = document.getElementById('cal-' + s);
+    if (m) {
+      nameEl.textContent = m.name;
+      calEl.textContent = m.calorie + ' kcal';
+    } else {
+      nameEl.innerHTML = '<span class="meal-empty">추천을 받아보세요</span>';
+      calEl.textContent = '- kcal';
+    }
+  });
+
+  document.getElementById('dietMode').checked = state.dietMode;
+  updateDietTargetDisplay();
+}
+
+function onDietToggle() {
+  state.dietMode = document.getElementById('dietMode').checked;
+  saveState();
+  updateDietTargetDisplay();
+  renderHome();
+}
+
+function updateDietTargetDisplay() {
+  const card = document.getElementById('dietTargetCard');
+  if (state.dietMode && state.profile) {
+    const target = calcDailyTarget();
+    document.getElementById('dailyTargetDisplay').textContent = target + ' kcal';
+    document.getElementById('dailyTargetDesc').textContent =
+      '현재 ' + state.profile.weight + 'kg → 목표 ' + state.profile.target + 'kg (하루 500kcal 감량)';
+    card.style.display = 'block';
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+async function recommendMeals() {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('API 키를 먼저 입력해주세요'); return; }
+  if (!state.profile) { showToast('먼저 ⚙️에서 내 정보를 입력해주세요'); openSettings('profile'); return; }
+
+  // 연타 방지: 버튼 비활성화
+  const btn = document.querySelector('#page-meal .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 추천 중...'; }
+  showApiLoading('✨ 식단 구성 중...', '오늘의 맞춤 식단을 만들고 있어요');
+  const target = calcDailyTarget();
+  const day = getDay(currentDate);
+  const ingredientHint = day.ingredients.length > 0
+    ? '가능하면 다음 재료를 활용하세요: ' + day.ingredients.join(', ')
+    : '한국 가정에서 흔히 구할 수 있는 재료를 활용하세요.';
+  const dietHint = state.dietMode ? '다이어트 모드(저칼로리·고단백 위주)' : '일반 균형식';
+
+  const rmController = new AbortController();
+  const rmTimeoutId = setTimeout(() => rmController.abort(), 25000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: rmController.signal,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: '하루 식단을 추천해주세요.' + NL +
+            '목표 칼로리: ' + target + ' kcal (' + dietHint + ')' + NL +
+            ingredientHint + NL + NL +
+            '아침/점심/저녁/간식 4끼로 나누어 추천하고, 합계가 목표 칼로리에 근접하도록 해주세요.' + NL +
+            '반드시 아래 JSON 형식만 출력하세요:' + NL +
+            '{"breakfast":{"name":"메뉴명","calorie":350},"lunch":{"name":"메뉴명","calorie":500},"dinner":{"name":"메뉴명","calorie":450},"snack":{"name":"메뉴명","calorie":150}}'
+        }]
+      })
+    });
+    clearTimeout(rmTimeoutId);
+    if (!res.ok) throw new Error('API 오류: ' + res.status);
+    const data = await res.json();
+    const text = data.content[0].text.trim();
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    day.meals = parsed;
+    saveState();
+    renderMeal();
+    renderHome();
+    showToast('식단을 추천했습니다 ✅');
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      showToast('⏱️ 시간 초과 (25초). 네트워크 확인 후 다시 시도해주세요');
+    } else {
+      console.error(e);
+      showToast('추천 실패: ' + e.message);
+    }
+  } finally {
+    clearTimeout(rmTimeoutId);
+    hideApiLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '✨ AI 식단 추천받기'; }
+  }
+}
+
+function showMealDetail(slot) {
+  const day = getDay(currentDate);
+  const m = day.meals[slot];
+  const slotName = { breakfast:'아침', lunch:'점심', dinner:'저녁', snack:'간식' }[slot];
+  let html = '<div class="modal-title">' + slotName + ' 메뉴</div>';
+  if (m) {
+    html += '<div style="font-size:18px;font-weight:700;margin-bottom:6px">' + m.name + '</div>' +
+            '<span class="badge badge-orange">🔥 ' + m.calorie + ' kcal</span>';
+    if (m.recipe && m.recipe.steps) {
+      html += '<div class="card-title" style="margin-top:16px">🥘 조리 순서</div><div style="font-size:14px">' +
+        m.recipe.steps.map((s, n) => '<div style="margin-bottom:8px"><b>' + (n+1) + '.</b> ' + s + '</div>').join('') +
+        '</div>';
+    }
+    html += '<button class="btn btn-danger" style="margin-top:14px" onclick="removeMeal(\'' + slot + '\')">이 메뉴 삭제</button>';
+  } else {
+    html += '<div style="color:#94a3b8;margin-bottom:14px">아직 추천된 메뉴가 없습니다.</div>' +
+            '<button class="btn btn-primary" onclick="closeModal();recommendMeals()">AI 추천받기</button>';
+  }
+  html += '<button class="btn btn-secondary" style="margin-top:8px" onclick="closeModal()">닫기</button>';
+  openModal(html);
+}
+
+function removeMeal(slot) {
+  const day = getDay(currentDate);
+  delete day.meals[slot];
+  saveState();
+  closeModal();
+  renderMeal();
+  renderHome();
+}
+
+// ============================================================
+// 운동
+// ============================================================
+function setTime(min, btn) {
+  exerciseTime = min;
+  document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderExercise();
+}
+
+function setLocation(loc, btn) {
+  exerciseLoc = loc;
+  document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderExercise();
+}
+
+function renderExercise() {
+  const list = document.getElementById('exerciseList');
+  const filtered = EXERCISES.filter(e => exerciseLoc === 'all' || e.loc === exerciseLoc);
+  list.innerHTML = filtered.map((ex, idx) => {
+    const cal = calcExerciseCalorie(ex.met, exerciseTime);
+    const realIdx = EXERCISES.indexOf(ex);
+    return '<div class="exercise-card">' +
+      '<div class="exercise-info">' +
+        '<div class="name">' + ex.icon + ' ' + ex.name + '</div>' +
+        '<div class="meta">' + ex.desc + ' · MET ' + ex.met + '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center">' +
+        '<div class="exercise-cal">' +
+          '<div class="num">' + cal + '</div>' +
+          '<div class="unit">kcal / ' + exerciseTime + '분</div>' +
+        '</div>' +
+        '<button class="add-btn" onclick="addExercise(' + realIdx + ',' + exerciseTime + ')">완료</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  renderTodayExercises();
+}
+
+function addExercise(idx, minutes) {
+  const ex = EXERCISES[idx];
+  if (!ex) return;
+  const cal = calcExerciseCalorie(ex.met, minutes);
+  const day = getDay(currentDate);
+  day.exercises.push({ name: ex.name, icon: ex.icon, minutes, calorie: cal, met: ex.met });
+  saveState();
+  renderTodayExercises();
+  showToast(ex.name + ' 완료! ' + cal + ' kcal 소모');
+}
+
+function renderTodayExercises() {
+  const day = getDay(currentDate);
+  const card = document.getElementById('todayExerciseCard');
+  const list = document.getElementById('todayExerciseList');
+  if (day.exercises.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  list.innerHTML = day.exercises.map((e, i) =>
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9">' +
+      '<div><b>' + e.icon + ' ' + e.name + '</b><div style="font-size:12px;color:#64748b">' + e.minutes + '분</div></div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="color:#10b981;font-weight:700">-' + e.calorie + ' kcal</span>' +
+        '<button class="btn-secondary" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px" onclick="removeExercise(' + i + ')">×</button>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function removeExercise(i) {
+  const day = getDay(currentDate);
+  day.exercises.splice(i, 1);
+  saveState();
+  renderTodayExercises();
+  renderHome();
+}
+
+// ============================================================
+// iOS 설치 안내 (홈 화면에 추가)
+// ============================================================
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function isStandalone() {
+  return window.navigator.standalone === true ||
+         window.matchMedia('(display-mode: standalone)').matches;
+}
+function maybeShowInstallBanner() {
+  // iOS이고, 홈 화면 추가 안 한 상태이고, 사용자가 닫지 않았을 때만
+  if (!isIOS() || isStandalone()) return;
+  if (localStorage.getItem('install_banner_dismissed') === '1') return;
+  setTimeout(() => {
+    document.getElementById('installBanner').classList.add('show');
+  }, 3000);
+}
+function dismissInstall(permanent) {
+  document.getElementById('installBanner').classList.remove('show');
+  if (permanent) localStorage.setItem('install_banner_dismissed', '1');
+}
+
+// ============================================================
+// 데이터 백업 / 복원 (Safari 캐시 삭제 대비)
+// ============================================================
+function backupData() {
+  try {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data: state,
+      apiKey: getApiKey()
+    };
+    const jsonStr = JSON.stringify(payload, null, 2);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = 'daily-moon-backup-' + stamp + '.json';
+
+    // iOS PWA: <a download> 미지원 → navigator.share 사용
+    if (navigator.share && isIOS()) {
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const file = new File([blob], fileName, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Daily Moon 백업' })
+          .then(() => showToast('백업 파일을 공유했습니다'))
+          .catch(() => showToast('공유가 취소되었습니다'));
+        return;
+      }
+    }
+
+    // 일반 브라우저: <a download> 방식
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('백업 파일을 저장했습니다');
+  } catch (e) {
+    showToast('백업 실패: ' + e.message);
+  }
+}
+
+function restoreData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed || !parsed.data) throw new Error('백업 파일 형식 오류');
+      if (!confirm('현재 데이터를 백업 파일로 덮어쓰시겠습니까?')) return;
+      state = parsed.data;
+      saveState();
+      if (parsed.apiKey) setApiKey(parsed.apiKey);
+      showToast('복원 완료. 새로고침합니다...');
+      setTimeout(() => location.reload(), 1000);
+    } catch (e) {
+      showToast('복원 실패: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// 초기화
+// ============================================================
+function init() {
+  // 첫 진입 시 안내
+  if (!getApiKey() || !state.profile) {
+    setTimeout(() => {
+      showToast('⚙️ 우측 상단 설정에서 API 키와 프로필을 먼저 입력해주세요');
+    }, 500);
+  }
+  renderHome();
+  renderIngredients();
+  renderExercise();
+  document.getElementById('dateSelector').value = currentDate;
+  maybeShowInstallBanner();
+
+  // iOS Safari 페이지 복귀 시 데이터 새로고침
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      const newDate = todayKey();
+      if (newDate !== currentDate) {
+        currentDate = newDate;
+        document.getElementById('dateSelector').value = currentDate;
+      }
+      if (currentTab === 'home') renderHome();
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
