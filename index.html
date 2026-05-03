@@ -1476,6 +1476,7 @@ function addExercise(idx, minutes) {
   day.exercises.push({ name: ex.name, icon: ex.icon, minutes, calorie: cal, met: ex.met });
   saveState();
   renderTodayExercises();
+  renderHome();
   showToast(ex.name + ' 완료! ' + cal + ' kcal 소모');
 }
 
